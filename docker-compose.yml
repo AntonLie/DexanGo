@@ -1,0 +1,89 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dexago-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dexago
+      POSTGRES_PASSWORD: dexago
+      POSTGRES_DB: dexago
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dexago"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:7-alpine
+    container_name: dexago-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: dexago-backend
+    container_name: dexago-api-gateway
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      TZ: Asia/Jakarta
+      DATABASE_URL: postgresql://dexago:dexago@postgres:5432/dexago?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      JWT_SECRET: change-me-in-production-please
+      JWT_EXPIRES_IN: "1h"
+      API_PORT: "3001"
+      CORS_ORIGINS: "http://localhost:5173,http://localhost:5174"
+      PUBLIC_URL: "http://localhost:3001"
+    ports:
+      - "3001:3001"
+    volumes:
+      - uploads:/app/services/api-gateway/uploads
+    command: >
+      sh -c "pnpm --filter @dexago/api-gateway db:deploy &&
+             pnpm --filter @dexago/api-gateway seed &&
+             pnpm --filter @dexago/api-gateway start"
+
+  log-worker:
+    image: dexago-backend
+    container_name: dexago-log-worker
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api-gateway:
+        condition: service_started
+    environment:
+      TZ: Asia/Jakarta
+      LOG_DATABASE_URL: postgresql://dexago:dexago@postgres:5432/dexago_logs?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      LOG_WORKER_PORT: "3002"
+    ports:
+      - "3002:3002"
+    command: >
+      sh -c "pnpm --filter @dexago/log-worker db:deploy &&
+             pnpm --filter @dexago/log-worker start"
+
+volumes:
+  pgdata:
+  uploads:

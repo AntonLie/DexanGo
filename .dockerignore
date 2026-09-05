@@ -1,0 +1,12 @@
+**/node_modules
+**/dist
+**/build
+**/.turbo
+**/generated
+services/api-gateway/uploads
+**/*.log
+.git
+.env
+.env.local
+Dexa.pdf
+**/.vscode

@@ -1,0 +1,57 @@
+// Main application database (employees + attendance), owned by api-gateway.
+// The audit-log database is separate and owned by log-worker.
+
+generator client {
+  provider = "prisma-client-js"
+  // Isolated output so this client never clashes with log-worker's client
+  // (both would otherwise share the hoisted @prisma/client under pnpm).
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  EMPLOYEE
+  ADMIN
+}
+
+enum AttendanceStatus {
+  IN
+  OUT
+}
+
+model Employee {
+  id       String  @id @default(cuid())
+  name     String
+  email    String  @unique
+  password String
+  position String
+  phone    String?
+  photoUrl String? @map("photo_url")
+  role     Role    @default(EMPLOYEE)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  attendances Attendance[]
+
+  @@map("employees")
+}
+
+model Attendance {
+  id         String           @id @default(cuid())
+  employeeId String           @map("employee_id")
+  employee   Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  status     AttendanceStatus
+  timestamp  DateTime         @default(now())
+  // Local date bucket (YYYY-MM-DD) for daily grouping & range filtering.
+  date       String
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([employeeId, date])
+  @@map("attendance")
+}

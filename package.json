@@ -1,0 +1,31 @@
+{
+  "name": "dexago",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DexaGo - Employee WFH Attendance & HRD Monitoring System (NestJS microservices + React/Mantine)",
+  "packageManager": "pnpm@9.15.9",
+  "scripts": {
+    "dev": "turbo run dev",
+    "dev:web": "turbo run dev --filter=@dexago/employee-web --filter=@dexago/admin-web",
+    "dev:services": "turbo run dev --filter=@dexago/api-gateway --filter=@dexago/log-worker",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "start": "turbo run start",
+    "db:generate": "turbo run db:generate",
+    "db:migrate": "turbo run db:migrate",
+    "db:seed": "pnpm --filter @dexago/api-gateway db:seed",
+    "db:setup": "turbo run db:generate && turbo run db:migrate && pnpm db:seed",
+    "docker:up": "docker compose up -d --build",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "clean": "turbo run clean && rimraf node_modules"
+  },
+  "devDependencies": {
+    "rimraf": "^5.0.5",
+    "turbo": "^2.5.0",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

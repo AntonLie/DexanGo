@@ -1,0 +1,25 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("LOG_DATABASE_URL")
+}
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  action        String
+  employeeId    String   @map("employee_id")
+  employeeEmail String   @map("employee_email")
+  employeeName  String   @map("employee_name")
+  message       String
+  changes       String?
+  occurredAt    DateTime @map("occurred_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([employeeId])
+  @@index([occurredAt])
+  @@map("audit_logs")
+}
